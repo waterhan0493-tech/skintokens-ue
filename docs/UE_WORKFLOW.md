@@ -84,3 +84,46 @@ npx @gltf-transform/cli simplify welded.glb character.glb --ratio 0.5
   [VAST-AI SkinTokens](https://github.com/VAST-AI-Research/SkinTokens)의 라이선스를
   따로 확인한 뒤 상업적으로 쓴다.
 - 학습 분포와 다른 형태(동물, 로봇, 비정형)는 결과가 불안정하다.
+
+## 6. 몬스터·동물 애니메이션 (UniMate)
+
+마네킹 애니메이션을 리타깃할 수 없는 비인간형 캐릭터(네발짐승, 새, 뱀, 곤충)는
+[UniMate](https://github.com/waterhan0493-tech/unimate-ue)(포크, 원본
+[Friedrich-M/UniMate](https://github.com/Friedrich-M/UniMate))로 텍스트에서 모션을 만든다.
+
+> 상태: 미검증. 체크포인트는 업스트림도 preview라고 한다.
+
+### 흐름
+
+```
+리깅된 몬스터 (Tripo Auto Rigging 또는 skintokens rig)
+  → UniMate 데이터 파이프라인으로 스켈레톤 feature 생성
+  → 텍스트로 모션 생성 (.npy)
+  → 파이프라인 5단계로 애니메이션 GLB/FBX 내보내기
+  → Unreal에 애니메이션 시퀀스로 임포트
+```
+
+### 단계
+
+1. **환경**: Linux + conda + NVIDIA GPU. Windows는 WSL.
+2. **체크포인트**: [Linzhan/UniMate](https://huggingface.co/Linzhan/UniMate)를 받는다.
+   학습 출력과 같은 구조(`config.json`, `dataset_stats.npy`, `checkpoints/`)다.
+3. **내 스켈레톤 등록**: 추론은 대상 스켈레톤(T-pose, 토폴로지)을
+   `dataset/features/<dataset>/`에서 읽는다. 내 캐릭터를 쓰려면
+   [`data_process/`](https://github.com/Friedrich-M/UniMate/tree/main/data_process)의
+   export → joint annotation → feature extraction 단계를 내 GLB/FBX에 돌려
+   feature를 만들어야 한다. 가장 손이 많이 가는 단계다.
+   관절 수는 5~100개(Objaverse/UniML3D 설정은 60개) 범위여야 한다.
+4. **모션 생성**: `python -m unimate.inference.sample` 또는
+   `scripts/run_sample_motion_text.sh <exp_dir> [test_cases_json] [cfg_scale]`.
+   텍스트 예: "walk forward", "turn head while moving".
+5. **내보내기**: 생성된 `.npy`를 데이터 파이프라인 5단계에 넘겨 애니메이션 GLB + FBX를 만든다.
+6. **Unreal 임포트**: FBX를 임포트하면서 Skeleton을 해당 몬스터의 스켈레톤으로 지정한다.
+   루트 모션을 쓸 거면 임포트 후 애니메이션 시퀀스에서 Root Motion을 켠다.
+
+### 주의
+
+- 코드는 MIT. 학습 데이터에 Mixamo, Objaverse(에셋별 라이선스), Truebones(상업 팩)가
+  섞여 있어 생성 모션의 상업적 사용은 따로 확인한다.
+- preview 체크포인트라 게임용은 수작업 보정을 전제로 한다.
+- 사람형 캐릭터는 이 단계 대신 마네킹 애니메이션(4~5단계)을 쓴다.
