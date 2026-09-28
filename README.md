@@ -1,5 +1,7 @@
 # skin-tokens.cpp
 
+> Fork note: Unreal Engine pipeline notes are in [docs/UE_WORKFLOW.md](docs/UE_WORKFLOW.md).
+
 A C++23/GGML port of
 [SkinTokens / TokenRig](https://github.com/VAST-AI-Research/SkinTokens) for
 automatic skeleton and skin-weight generation on CPU or Vulkan.
